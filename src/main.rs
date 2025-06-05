@@ -34,6 +34,24 @@ fn list_tasks(tasks: &Vec<Task>) {
         }
     }
 }
+fn toggle_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
+    for task in tasks.iter_mut() {
+        if task.id == id {
+            task.completed = !task.completed;
+            return Ok(());
+        }
+    }
+    Err(format!("Task with ID {} not found", id))
+}
+fn del_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
+    match tasks.iter().position(|task| task.id == id) {
+        Some(index) => {
+            tasks.remove(index);
+            Ok(())
+        }
+        None => Err(format!("Task with id {} not found", id)),
+    }
+}
 
 fn main() {
     let mut tasks: Vec<Task> = Vec::new();
@@ -43,7 +61,9 @@ fn main() {
         print!("> ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read input");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read input");
         let input = input.trim();
 
         if input == "quit" {
@@ -62,6 +82,38 @@ fn main() {
                     add_task(&mut tasks, parts[1].to_string());
                     println!("Task added!");
                     list_tasks(&tasks);
+                }
+            }
+            "x" => {
+                if parts.len() < 2 || parts[1].is_empty() {
+                    println!("Please provide a task ID.");
+                } else {
+                    match parts[1].parse::<u32>() {
+                        Ok(id) => match toggle_task(&mut tasks, id) {
+                            Ok(_) => {
+                                println!("Task {} toggled!", id);
+                                list_tasks(&tasks);
+                            }
+                            Err(e) => println!("{}", e),
+                        },
+                        Err(_) => println!("Invalid task ID. Please provide a number."),
+                    }
+                }
+            }
+            "rm" => {
+                if parts.len() < 2 || parts[1].is_empty() {
+                    println!("Please provide a task Id to remove");
+                } else {
+                    match parts[1].parse::<u32>() {
+                        Ok(id) => match del_task(&mut tasks, id) {
+                            Ok(_) => {
+                                println!("Task {} removed!", id);
+                                list_tasks(&tasks);
+                            }
+                            Err(e) => println!("{}", e),
+                        },
+                        Err(_) => println!("Invalid task ID. Please provide a number."),
+                    }
                 }
             }
             _ => println!("Unknown command. Use 'list', 'add <task>', '+ <task>', or 'quit'."),
