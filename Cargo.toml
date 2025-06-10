@@ -2,6 +2,13 @@
 name = "todoz"
 version = "0.1.0"
 edition = "2024"
+authors = ["zape"]
+description = "A simple CLI to-do list manager"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/sangeeth-606/todoZ"
+keywords = ["todo", "cli", "task-manager"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }
@@ -11,3 +18,5 @@ dirs = "5.0"
 [[bin]]
 name = "todoz"
 path = "src/main.rs"
+
+

@@ -101,7 +101,7 @@ TodoZ saves your tasks in `~/.todoz/todos.json` (Linux/macOS) or `%USERPROFILE%\
 
 ```bash
 # Clone the repository
-git clone https://github.com/sangeeth-606/todoz.git
+git clone https://github.com/sangeeth-606/todoZ
 cd todoz
 
 # Build
