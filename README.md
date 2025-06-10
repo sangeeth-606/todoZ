@@ -2,7 +2,7 @@
 
 TodoZ is a fast, lightweight command-line todo list manager written in Rust. It helps you keep track of your tasks with a simple and intuitive interface.
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
