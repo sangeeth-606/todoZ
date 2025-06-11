@@ -7,7 +7,7 @@ description = "A mindful CLI task manager blending zen aesthetics with modern fu
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/sangeeth-606/todoZ"
-keywords = ["todo", "cli", "mindful", "zen", "modern", "productivity"]
+keywords = ["todo", "cli", "mindful", "zen", "productivity"]
 categories = ["command-line-utilities"]
 
 [dependencies]
