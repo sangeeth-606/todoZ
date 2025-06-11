@@ -1,4 +1,4 @@
-# TodoZ - A Simple Command-Line Todo Application
+# TodoZ 
 
 TodoZ is a fast, lightweight command-line todo list manager written in Rust. It helps you keep track of your tasks with a simple and intuitive interface.
 
