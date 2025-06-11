@@ -71,28 +71,6 @@ todoz
 | `help`       | Show help message             |
 | `quit`       | Exit the application          |
 
-### Examples
-
-```
-> add Buy groceries
-Task added!
-1 [ ]: Buy groceries
-
-> add Finish report
-Task added!
-1 [ ]: Buy groceries
-2 [ ]: Finish report
-
-> x 1
-Task 1 toggled!
-1 [x]: Buy groceries
-2 [ ]: Finish report
-
-> rm 2
-Task 2 removed!
-1 [x]: Buy groceries
-```
-
 ## Data Storage
 
 TodoZ saves your tasks in `~/.todoz/todos.json` (Linux/macOS) or `%USERPROFILE%\.todoz\todos.json` (Windows).
