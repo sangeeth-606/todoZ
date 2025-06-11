@@ -1,22 +1,21 @@
 [package]
 name = "todoz"
-version = "1.0.0"
-edition = "2024"
+version = "1.1.0"
+edition = "2021"
 authors = ["zape"]
-description = "A simple CLI to-do list manager"
+description = "A mindful CLI task manager blending zen aesthetics with modern functionality"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/sangeeth-606/todoZ"
-keywords = ["todo", "cli", "task-manager"]
+keywords = ["todo", "cli", "mindful", "zen", "modern", "productivity"]
 categories = ["command-line-utilities"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
-dirs = "5.0" 
+dirs = "5.0"
+colored = "2.1.0"
 
 [[bin]]
 name = "todoz"
 path = "src/main.rs"
-
-

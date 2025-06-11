@@ -1,7 +1,10 @@
+use colored::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::thread;
+use std::time::{Duration, Instant};
 
 #[derive(Serialize, Deserialize)]
 struct Task {
@@ -20,8 +23,28 @@ impl Task {
     }
 
     fn display(&self) -> String {
-        let checkbox: &'static str = if self.completed { "[x]" } else { "[ ]" };
-        format!("{} {}: {}", self.id, checkbox, self.description)
+        let (symbol, style) = if self.completed {
+            ("✓", "bright_green")
+        } else {
+            ("◯", "bright_cyan")
+        };
+
+        
+        let id_str = if self.id < 10 {
+            format!("0{}", self.id).bright_black()
+        } else {
+            format!("{}", self.id).bright_black()
+        };
+
+        let description = if self.completed {
+            format!("  {}", self.description)
+                .bright_black()
+                .strikethrough()
+        } else {
+            format!("  {}", self.description).bright_white()
+        };
+
+        format!("  {} {} {}", id_str, symbol.color(style), description)
     }
 }
 
@@ -59,14 +82,64 @@ fn add_task(tasks: &mut Vec<Task>, description: String) -> Result<(), String> {
     save_tasks(tasks)
 }
 
+fn print_subtle_line() {
+    println!(
+        "{}",
+        "  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─".bright_black()
+    );
+}
+
 fn list_tasks(tasks: &Vec<Task>) {
+    println!();
+
     if tasks.is_empty() {
-        println!("No tasks in the list.");
+        println!(
+            "{}",
+            "    ✨ Your space is clear and ready"
+                .bright_cyan()
+                .italic()
+        );
+        println!(
+            "{}",
+            "       Add a task when inspiration strikes".bright_black()
+        );
+        println!();
     } else {
+        let total_tasks = tasks.len();
+        let completed_tasks = tasks.iter().filter(|t| t.completed).count();
+
+        
+        let progress_percentage = if total_tasks > 0 {
+            (completed_tasks as f32 / total_tasks as f32 * 100.0) as u32
+        } else {
+            0
+        };
+
+        let progress_bar = if progress_percentage > 0 {
+            let filled = (progress_percentage / 5) as usize; 
+            let empty = 20 - filled;
+            format!(
+                "{}{}",
+                "●".repeat(filled).bright_green(),
+                "○".repeat(empty).bright_black()
+            )
+        } else {
+            "○".repeat(20).bright_black().to_string()
+        };
+
+        println!(
+            "{}",
+            format!("    Progress: {} {}%", progress_bar, progress_percentage).bright_white()
+        );
+
+        print_subtle_line();
+
         for task in tasks {
             println!("{}", task.display());
         }
     }
+
+    println!();
 }
 
 fn toggle_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
@@ -76,7 +149,13 @@ fn toggle_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
             return save_tasks(tasks);
         }
     }
-    Err(format!("Task with ID {} not found", id))
+    
+    let id_str = if id < 10 {
+        format!("0{}", id)
+    } else {
+        id.to_string()
+    };
+    Err(format!("Task {} not found", id_str))
 }
 
 fn del_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
@@ -85,7 +164,15 @@ fn del_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
             tasks.remove(index);
             save_tasks(tasks)
         }
-        None => Err(format!("Task with id {} not found", id)),
+        None => {
+            
+            let id_str = if id < 10 {
+                format!("0{}", id)
+            } else {
+                id.to_string()
+            };
+            Err(format!("Task {} not found", id_str))
+        }
     }
 }
 
@@ -94,30 +181,319 @@ fn clear_all_tasks(tasks: &mut Vec<Task>) -> Result<(), String> {
     save_tasks(tasks)
 }
 
+fn start_pomodoro() {
+    println!();
+    show_gentle_feedback("Starting your focused work session", "🍅", "bright_green");
+    println!(
+        "{}",
+        "      Take a deep breath and focus on one task"
+            .bright_black()
+            .italic()
+    );
+    print_subtle_line();
+
+    let start_time = Instant::now();
+    let duration = Duration::from_secs(25 * 60); 
+
+    
+    println!();
+    println!(
+        "{}",
+        "           ╭───────────────╮           ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "       ╭───┤               ├───╮       ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "     ╭─┤   │               │   ├─╮     ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "    │  │   │    🍅 FOCUS   │   │  │    "
+            .bright_magenta()
+            .bold()
+    );
+    println!(
+        "{}{}{}",
+        "    │  │   │     ".bright_cyan(),
+        "25:00".bright_white().bold(),
+        "     │   │  │    ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "    │  │   │               │   │  │    ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "     ╰─┤   │               │   ├─╯     ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "       ╰───┤               ├───╯       ".bright_cyan()
+    );
+    println!(
+        "{}",
+        "           ╰───────────────╯           ".bright_cyan()
+    );
+
+    let mut last_displayed = 61; 
+
+    loop {
+        let elapsed = start_time.elapsed();
+        if elapsed >= duration {
+            break;
+        }
+
+        let remaining = duration - elapsed;
+        let minutes = remaining.as_secs() / 60;
+        let seconds = remaining.as_secs() % 60;
+
+        
+        if last_displayed != seconds {
+            
+            print!("\x1B[s"); 
+            print!("\x1B[5A"); 
+
+            
+            let time_color = if minutes >= 20 {
+                "bright_green"
+            } else if minutes >= 10 {
+                "bright_cyan"
+            } else if minutes >= 5 {
+                "bright_yellow"
+            } else {
+                "bright_red"
+            };
+
+            
+            let colon = if seconds % 2 == 0 { ":" } else { " " };
+            print!("\r");
+            println!(
+                "{}{}{}{}{}",
+                "    │  │   │     ".bright_cyan(),
+                format!("{:02}", minutes).color(time_color).bold(),
+                colon.color(time_color).bold(),
+                format!("{:02}", seconds).color(time_color).bold(),
+                "     │   │  │    ".bright_cyan()
+            );
+
+            
+            let total_seconds = 25 * 60;
+            let elapsed_seconds = total_seconds - remaining.as_secs();
+            let progress_percent = (elapsed_seconds as f32 / total_seconds as f32 * 100.0) as u32;
+
+            
+            let bar_width = 17;
+            let filled = ((progress_percent as f32 / 100.0) * bar_width as f32) as usize;
+            let empty = bar_width - filled;
+
+            print!("\x1B[1B"); 
+            print!("\r");
+            println!(
+                "{}{}{}{}",
+                "    │  │   │ ".bright_cyan(),
+                "◆".repeat(filled).color(time_color),
+                "◇".repeat(empty).bright_black(),
+                " │   │  │    ".bright_cyan()
+            );
+
+            
+            print!("\x1B[u");
+            io::stdout().flush().unwrap();
+
+            last_displayed = seconds;
+        }
+
+        thread::sleep(Duration::from_millis(200)); 
+    }
+
+    
+    print!("\x1B[8A"); 
+    println!(
+        "{}",
+        "           ╭───────────────╮           ".bright_green()
+    );
+    println!(
+        "{}",
+        "       ╭───┤               ├───╮       ".bright_green()
+    );
+    println!(
+        "{}",
+        "     ╭─┤   │               │   ├─╮     ".bright_green()
+    );
+    println!(
+        "{}",
+        "    │  │   │  🎉 TIME'S UP! 🎉  │  │    "
+            .bright_green()
+            .bold()
+    );
+    println!(
+        "{}{}{}",
+        "    │  │   │     ".bright_green(),
+        "00:00".bright_green().bold(),
+        "     │   │  │    ".bright_green()
+    );
+    println!(
+        "{}",
+        "    │  │   │               │   │  │    ".bright_green()
+    );
+    println!(
+        "{}",
+        "     ╰─┤   │               │   ├─╯     ".bright_green()
+    );
+    println!(
+        "{}",
+        "       ╰───┤               ├───╯       ".bright_green()
+    );
+    println!(
+        "{}",
+        "           ╰───────────────╯           ".bright_green()
+    );
+
+    println!();
+    show_gentle_feedback("Well done! Time for a 5-minute break", "✨", "bright_white");
+    println!(
+        "{}",
+        "      Stretch, breathe, or take a mindful walk"
+            .bright_black()
+            .italic()
+    );
+    println!();
+}
+
 fn show_help() {
-    println!("\nAvailable commands:");
-    println!("  list              - Show all tasks");
-    println!("  add <task>        - Add a new task");
-    println!("  x <id>            - Toggle task completion status");
-    println!("  rm <id>           - Remove a task");
-    println!("  rm-all            - Remove all tasks");
-    println!("  help              - Show this help message");
-    println!("  quit              - Exit the application\n");
+    println!();
+    println!(
+        "{}",
+        "  ✨ Simple commands for mindful productivity:".bright_white()
+    );
+    println!();
+    println!(
+        "    {}  {:<12}  {}",
+        "📋".bright_blue(),
+        "list",
+        "view your tasks".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "➕".bright_green(),
+        "add",
+        "create a new task".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "✅".bright_cyan(),
+        "x",
+        "toggle task completion".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "🗑️ ".bright_yellow(),
+        "rm",
+        "remove a task".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "🧹".bright_red(),
+        "rm-all",
+        "remove all tasks".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "🍅".bright_magenta(),
+        "pom",
+        "start 25-minute focus timer".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "❓".bright_blue(),
+        "help",
+        "show this guidance".bright_black()
+    );
+    println!(
+        "    {}  {:<12}  {}",
+        "👋".bright_magenta(),
+        "quit",
+        "exit peacefully".bright_black()
+    );
+    println!();
+    print_subtle_line();
+    println!();
+}
+
+fn show_welcome() {
+    print!("\x1B[2J\x1B[1;1H");
+
+    println!();
+    println!();
+    println!(
+        "{}",
+        "    ╭───────────────────────────────────────────╮".bright_black()
+    );
+    println!(
+        "{}",
+        "    │                                           │".bright_black()
+    );
+    println!(
+        "{}",
+        "    │             ✨  todoz  ✨               │".bright_cyan()
+    );
+    println!(
+        "{}",
+        "    │                                           │".bright_black()
+    );
+    println!(
+        "{}",
+        "    │        mindful task management            │".bright_white()
+    );
+    println!(
+        "{}",
+        "    │                                           │".bright_black()
+    );
+    println!(
+        "{}",
+        "    ╰───────────────────────────────────────────╯".bright_black()
+    );
+    println!();
+    println!(
+        "{}",
+        "      Begin with 'list' to see your tasks 📋".bright_black()
+    );
+    println!(
+        "{}",
+        "      or 'help' for gentle guidance ❓".bright_black()
+    );
+    println!();
+}
+
+fn get_prompt() -> String {
+    format!("{} ", "todoz ›".bright_cyan())
+}
+
+fn show_gentle_feedback(message: &str, emoji: &str, color: &str) {
+    println!("{}", format!("    {} {}", emoji, message).color(color));
 }
 
 fn main() {
+    show_welcome();
+
     let tasks = match load_tasks() {
         Ok(tasks) => tasks,
         Err(e) => {
-            println!("Error loading tasks: {}", e);
+            show_gentle_feedback(
+                &format!("Unable to load tasks: {}", e),
+                "⚠️",
+                "bright_yellow",
+            );
             Vec::new()
         }
     };
     let mut tasks: Vec<Task> = tasks;
-    println!("Welcome to the To-Do App! (Type 'help' for available commands)");
 
     loop {
-        print!("> ");
+        print!("{}", get_prompt());
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin()
@@ -126,6 +502,15 @@ fn main() {
         let input = input.trim();
 
         if input == "quit" {
+            println!();
+            show_gentle_feedback("Thank you for staying organized ✨", "👋", "bright_green");
+            println!(
+                "{}",
+                "      Until next time, stay mindful"
+                    .bright_black()
+                    .italic()
+            );
+            println!();
             break;
         }
 
@@ -134,56 +519,95 @@ fn main() {
             "help" => {
                 show_help();
             }
-            "list" => {
+            "list" | "" => {
                 list_tasks(&tasks);
             }
             "add" => {
                 if parts.len() < 2 || parts[1].is_empty() {
-                    println!("Please provide a task description.");
+                    show_gentle_feedback("Please describe your task", "💭", "bright_black");
                 } else {
                     match add_task(&mut tasks, parts[1].to_string()) {
                         Ok(_) => {
-                            println!("Task added!");
+                            show_gentle_feedback("Task added successfully", "✨", "bright_green");
                             list_tasks(&tasks);
                         }
-                        Err(e) => println!("{}", e),
+                        Err(e) => show_gentle_feedback(&e, "⚠️", "bright_red"),
                     }
                 }
             }
             "x" => {
                 if parts.len() < 2 || parts[1].is_empty() {
-                    println!("Please provide a task ID.");
+                    show_gentle_feedback(
+                        "Which task? (provide the task number)",
+                        "🤔",
+                        "bright_black",
+                    );
                 } else {
                     match parts[1].parse::<u32>() {
                         Ok(id) => match toggle_task(&mut tasks, id) {
                             Ok(_) => {
-                                println!("Task {} toggled!", id);
+                                
+                                let id_str = if id < 10 {
+                                    format!("0{}", id)
+                                } else {
+                                    id.to_string()
+                                };
+                                show_gentle_feedback(
+                                    &format!("Task {} updated", id_str),
+                                    "✅",
+                                    "bright_green",
+                                );
                                 list_tasks(&tasks);
                             }
-                            Err(e) => println!("{}", e),
+                            Err(e) => show_gentle_feedback(&e, "⚠️", "bright_red"),
                         },
-                        Err(_) => println!("Invalid task ID. Please provide a number."),
+                        Err(_) => show_gentle_feedback(
+                            "Please provide a valid task number",
+                            "💭",
+                            "bright_black",
+                        ),
                     }
                 }
             }
             "rm" => {
                 if parts.len() < 2 || parts[1].is_empty() {
-                    println!("Please provide a task Id to remove");
+                    show_gentle_feedback(
+                        "Which task to remove? (provide the task number)",
+                        "🤔",
+                        "bright_black",
+                    );
                 } else {
                     match parts[1].parse::<u32>() {
                         Ok(id) => match del_task(&mut tasks, id) {
                             Ok(_) => {
-                                println!("Task {} removed!", id);
+                                
+                                let id_str = if id < 10 {
+                                    format!("0{}", id)
+                                } else {
+                                    id.to_string()
+                                };
+                                show_gentle_feedback(
+                                    &format!("Task {} removed", id_str),
+                                    "🗑️",
+                                    "bright_green",
+                                );
                                 list_tasks(&tasks);
                             }
-                            Err(e) => println!("{}", e),
+                            Err(e) => show_gentle_feedback(&e, "⚠️", "bright_red"),
                         },
-                        Err(_) => println!("Invalid task ID. Please provide a number."),
+                        Err(_) => show_gentle_feedback(
+                            "Please provide a valid task number",
+                            "💭",
+                            "bright_black",
+                        ),
                     }
                 }
             }
             "rm-all" => {
-                print!("Are you sure you want to remove all tasks? (y/n): ");
+                print!(
+                    "{}",
+                    "    🤔 Remove all tasks? This cannot be undone (y/n): ".bright_yellow()
+                );
                 io::stdout().flush().unwrap();
                 let mut confirmation = String::new();
                 io::stdin()
@@ -191,14 +615,27 @@ fn main() {
                     .expect("Failed to read input");
                 if confirmation.trim().to_lowercase() == "y" {
                     match clear_all_tasks(&mut tasks) {
-                        Ok(_) => println!("All tasks have been removed."),
-                        Err(e) => println!("{}", e),
+                        Ok(_) => show_gentle_feedback(
+                            "All tasks cleared - fresh start!",
+                            "🧹",
+                            "bright_green",
+                        ),
+                        Err(e) => show_gentle_feedback(&e, "⚠️", "bright_red"),
                     }
                 } else {
-                    println!("Operation cancelled.");
+                    show_gentle_feedback("No changes made", "✋", "bright_blue");
                 }
             }
-            _ => println!("Unknown command. Type 'help' for available commands."),
+            "pom" => {
+                start_pomodoro();
+            }
+            _ => {
+                show_gentle_feedback(
+                    &format!("'{}' is not recognized. Try 'help' for guidance", parts[0]),
+                    "💭",
+                    "bright_black",
+                );
+            }
         }
     }
 }
