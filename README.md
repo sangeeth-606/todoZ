@@ -48,7 +48,7 @@ TodoZ is a fast, lightweight command-line todo list manager written in Rust. It 
 ### Using Cargo
 
 ```bash
-cargo install --git https://github.com/sangeeth-606/todoz.git
+cargo install todoz
 ```
 
 ## Usage
